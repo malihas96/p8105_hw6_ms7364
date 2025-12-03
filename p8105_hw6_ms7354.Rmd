@@ -1,0 +1,35 @@
+---
+title: "p8105_hw6"
+author: "Maliha Safdar"
+date: "2025-11-29"
+output: github_document
+---
+
+###Question 2
+
+```{r data setup}
+library(tidyverse)
+library(modelr)
+library(p8105.datasets)
+weather_df = p8105.datasets::weather_df
+```
+
+### Problem 1
+
+```{r}
+### importing the dataset
+
+homicide_daf = read.csv("homicide-data.csv")
+```
+
+```{r}
+### creating city_state variable, making binary variable for disposition, omitting Dallas, Phoenix, Kansas City and Tulsa,selecting white+black for victime_race and contverting victime_age to numeric.
+
+homicide_df = homicide_daf |>
+  mutate(
+    city_state = str_c(city,state, sep = ","),
+    solved = if_else(disposition == "Closed by arrest", 1, 0),
+    victim_age = as.numeric(victim_age)
+    )
+```
+

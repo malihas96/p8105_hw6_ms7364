@@ -5,22 +5,27 @@ date: "2025-11-29"
 output: github_document
 ---
 
-###Question 2
 
-```{r data setup}
+
+```{r}
 library(tidyverse)
 library(modelr)
+library(broom)
 library(p8105.datasets)
 weather_df = p8105.datasets::weather_df
 ```
 
 ### Problem 1
 
+`First, we will go ahead and import the data.`
 ```{r}
 ### importing the dataset
 
 homicide_daf = read.csv("homicide-data.csv")
 ```
+
+
+`Next, create city_state and solved variable. The solved variable will be binary so any case that is not closed with arrest will be 0. The victim_age will be converted to numeric using mutate function. We will use the filter function to ensure that Dallas, Phoenix, Kansas City and Tulsa are removed from city_state variable as well as only including White and Black race in victim_race.` 
 
 ```{r}
 ### creating city_state variable, making binary variable for disposition, omitting Dallas, Phoenix, Kansas City and Tulsa,selecting white+black for victime_race and contverting victime_age to numeric.
@@ -30,6 +35,61 @@ homicide_df = homicide_daf |>
     city_state = str_c(city,state, sep = ","),
     solved = if_else(disposition == "Closed by arrest", 1, 0),
     victim_age = as.numeric(victim_age)
-    )
+    ) |>
+  filter(
+    !city_state %in% c("Dallas,TX", "Phoenix,AZ", "Kansas City,MO","Tulsa,AL"),
+    victim_race %in% c ("White", "Black")
+  )
+```
+
+`Now we will fit a logistic regression  with solved and unsolved homicide cases as outcome and victime age, sex and race as predictors. For this model we will use Baltimore, MD from the city_state variable.`
+
+```{r}
+#filter for Baltimore, MD and create a variable for it.
+
+baltimore <- homicide_df |>
+  filter(city_state%in% c("Baltimore,MD"))
+
+# create the logistical model
+
+log_model <- glm(solved ~ victim_age + victim_sex + victim_race, data = baltimore, family = binomial())
+
+log_model |>
+  tidy(conf.int = TRUE) |>
+  filter(term == "victim_sexMale") |>
+  mutate(
+    OR = exp(estimate),
+    CI_low = exp(conf.low),
+    CI_high = exp(conf.high)
+  ) |>
+  select(OR, CI_low, CI_high) |>
+  knitr::kable(digits = 3)
+```
+
+`When comparing males versus females, we see that the odds ratio for solving homicide cases is 0.426 with a confidence interval between 0.324 and 0.558.`
+
+
+`Next we will perform logistic regression for every city in the dataset, and extract the odds ratio and CIs. We will compare males vs female victims.`
+
+```{r, warning=FALSE, message=FALSE}
+
+cities <- homicide_df |>
+  group_by(city_state) |>
+  nest() |>
+  mutate(
+    model = map(data, ~ glm(solved ~ victim_age + victim_sex + victim_race, data= .x, family = binomial ())),
+    results = map(model, ~ broom::tidy(.x, conf.int = TRUE))
+  ) |>
+  unnest(results) |>
+  filter(term == "victim_sexMale") |>
+  mutate(
+    OR = exp(estimate),
+    CI_low = exp(conf.low),
+    CI_high = exp(conf.high)
+  ) |>
+  select(city_state, OR, CI_low, CI_high)
+
+cities |>
+  knitr::kable(digits = 3)
 ```
 

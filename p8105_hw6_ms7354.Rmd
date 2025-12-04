@@ -249,3 +249,52 @@ birthweight_df |>
 
 `A baby's birth weight is affected by many variables. Some of the baby's characteristics such as sex, head circumference, and length at birth directly affect the growth and development while the mother's health also plays a role in the baby's birth weight. Some of those variables include pre-pregnancy BMI, weight, age and height. Furtermore, socioeconomic factors such as family income, mother and father's race are also predictors of birth weight. Lastly, certain lifestyle and health measurements like gestational age, smoking behavior and parity affect fetal growth and determine the baby's birthweight.`
 
+`Now we will compare the model to two other models.`
+
+```{r, models}
+
+model_1 <- lm( bwt ~ babysex + bhead + blength + delwt + fincome + frace+ gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = birthweight_clean)
+
+model_2 <- lm(bwt ~ blength + gaweeks, data = birthweight_clean)
+
+model_3 <- lm(bwt ~ bhead * blength * babysex, data = birthweight_clean)
+```
+
+
+`Now we will show the comparisons using cross-validated prediction error.`
+```{r}
+cross_validation <- crossv_mc(birthweight_df, 100) |>
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  )
+
+cross_validation <- cross_validation |>
+  mutate(
+    model_1 = map(train, \(df) lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace+ gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = df)),
+    model_2 = map(train, \(df) lm(bwt ~ blength + gaweeks, data = df)),
+    model_3 = map(train, \(df) lm(bwt ~ bhead * blength * babysex, data = df)),
+    rmse_model_1 = map2_dbl(model_1, test, \(mod,df) rmse(model = mod, data = df)),
+    rmse_model_2 = map2_dbl(model_2, test, \(mod,df) rmse(model = mod, data = df)),
+    rmse_model_3 = map2_dbl(model_3, test, \(mod,df) rmse(model = mod, data = df))
+    
+  )
+```
+
+`Now we will plot the output of each model.`
+
+```{r}
+cross_validation |>
+  select(starts_with("rmse")) |>
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_") |>
+  mutate(
+    model = fct_inorder(model)) |>
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin() +
+  labs( title = "Cross-validated prediction error for birth weight models")
+```
+`The above violin plots displays the three models that predict birth weight in babies. Model 1 uses all the variables that include the baby, mother and socioeconomic measurements which in turn gives the lowest RMSE which means that it makes accurate predictions on birth weight. Model 2 uses  only two variables, the baby's length and mother's gestational age which is why it has high RMSE values indicating that it does not make accurate predictions on baby's weight. Model 3 includes baby's features like the length, sex and head size which performs better and has lower RMSE values.`

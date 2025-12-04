@@ -150,6 +150,9 @@ weather_bootstrap_results |>
   )
 ```
 
+`The plot above shows that the weather bootstrap samples for R-squared which are mostly clustered between 0.935 and 0.945. The shape is sysmetric and smooth. The model consistently explains about 93.5% - 94.5% of variation on tmax, with little variability across bootstrap samples.`
+
+
 ```{r}
 
 weather_bootstrap_results |>
@@ -159,6 +162,8 @@ weather_bootstrap_results |>
     title = "Distribution of Beta 1 * Beta 2"
   )
 ```
+`The plot above is centered around -0.006 and stays consistently negative which means that the products of the coefficients (Beta1 and Beta2) are stable accorss samples and suggests and inverse combined effect the two predictors.` 
+
 
 `Now we'll calculate the 95% confidence intervals for r-squared and Beta1*Beta2.`
 

@@ -93,3 +93,20 @@ cities |>
   knitr::kable(digits = 3)
 ```
 
+`Making a plot to show the estimated ORs and CI for each city.`
+
+```{r}
+
+cities |>
+  ggplot(aes(x = reorder(city_state, OR), y = OR)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = CI_low, ymax = CI_high)) +
+  labs(
+    title = "Est Odds Ration for Solved Homicide Cases For Each City",
+    x = "City, State",
+    y = " Odds ratio (Male vs Female"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
+```
+

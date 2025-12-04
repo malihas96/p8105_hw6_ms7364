@@ -13,6 +13,7 @@ library(modelr)
 library(broom)
 library(p8105.datasets)
 weather_df = p8105.datasets::weather_df
+set.seed(123)
 ```
 
 ### Problem 1
@@ -104,9 +105,73 @@ cities |>
   labs(
     title = "Est Odds Ration for Solved Homicide Cases For Each City",
     x = "City, State",
-    y = " Odds ratio (Male vs Female"
+    y = " Odds ratio (Male vs Female)"
   ) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
   
 ```
+`In the plot above, we can visualize the Odds Ratio of solved homicide cases in every city of our dataset. The ORs vary between 0.5 to 1.5. In cities like NYC, Baton Rouge and Omaha the OR is less than 1 which indicates that in those cities female homicide cases are solved more than males. In cities like Albuquerque, Stockon, and Fresno which have ORs greater than 1, indicates that male homicide cases are solved more than females.`
+
+### Problem 2
+`We will fit a simple linear regression model using weather_df. The tmax is the output(response) and tmin and prcp are predictors.`
+```{r}
+# Create the function
+weather_bootstrap <- function(df) {
+ 
+   bootstrap_df <- df |> sample_frac(replace = TRUE)
+   
+   fit <- lm(tmax ~ tmin + prcp, data = bootstrap_df)
+   
+   r2 <- glance(fit)$r.squared #extract r2
+   
+   coefs <- tidy(fit) #extract coeffcients
+   
+   beta1 <- coefs$estimate[coefs$term == "tmin"]
+   beta2 <- coefs$estimate[coefs$term == "prcp"]
+   
+   tibble(
+     r2 = r2,
+     coef_values = beta1 * beta2
+   )
+}
+
+# Taking bootstrap samples
+
+weather_bootstrap_results <- map_df(1:5000, ~ weather_bootstrap(weather_df))
+```
+
+
+```{r}
+weather_bootstrap_results |>
+  ggplot(aes( x = r2)) +
+  geom_density(fill = "red", alpha = 0.5) +
+  labs(
+    title = "Distribution of R-Squared from Bootstrap Samples"
+  )
+```
+
+```{r}
+
+weather_bootstrap_results |>
+  ggplot(aes(x = coef_values)) +
+  geom_density(fill = "lightblue", alpha = 0.8) +
+  labs(
+    title = "Distribution of Beta 1 * Beta 2"
+  )
+```
+
+`Now we'll calculate the 95% confidence intervals for r-squared and Beta1*Beta2.`
+
+```{r}
+conf_intervals <- weather_bootstrap_results |>
+  summarise(
+    r2_low = quantile(r2, 0.025),
+    r2_high = quantile(r2, 0.975),
+    beta_low = quantile(coef_values, 0.025),
+    beta_high = quantile(coef_values, 0.975)
+  )
+
+knitr::kable(conf_intervals)
+```
+
 
